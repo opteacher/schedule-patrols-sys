@@ -1,0 +1,27 @@
+.w-100 {
+  width: 100%;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.mb-10 {
+  margin-bottom: 10px !important;
+}
+
+.mr-8 {
+  margin-right: 8px !important;
+}
+
+.mtb-10 {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important; 
+}
+
+.center-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
