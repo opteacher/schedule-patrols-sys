@@ -1,0 +1,4 @@
+version=1
+prefix="schedule-patrols-sys"
+type="mongo"
+sync=true

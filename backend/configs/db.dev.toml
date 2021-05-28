@@ -1,0 +1,6 @@
+[mongo]
+database="test"
+username="root"
+password="12345"
+host="42.192.55.65"
+port=27017

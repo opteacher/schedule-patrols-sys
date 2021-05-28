@@ -2,8 +2,16 @@
   width: 100%;
 }
 
+.m-5 {
+  padding: 5px;
+}
+
 .mb-0 {
   margin-bottom: 0 !important;
+}
+
+.ml-0 {
+  margin-left: 0 !important;
 }
 
 .mb-10 {
@@ -19,9 +27,27 @@
   margin-bottom: 10px !important; 
 }
 
+.ptb-10 {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important; 
+}
+
 .center-container {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.light-grey-bkgd {
+  background-color: #f9f9f9;
+}
+
+.btm-btn {
+  position: fixed;
+  width: 98vw;
+  left: 1vw;
+  right: 1vw;
+  bottom: 5px;
+  z-index: 1000;
 }

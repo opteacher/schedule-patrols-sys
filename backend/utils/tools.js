@@ -1,5 +1,7 @@
+const _ = require('lodash')
 const fs = require('fs')
 const path = require('path')
+const toml = require('toml')
 
 const exp = {
   // @block{scanPath}:扫描指定目录和子目录
@@ -90,6 +92,42 @@ const exp = {
   },
   rootPath () {
     return path.resolve(__dirname, '..')
+  },
+  readConfig(cfgFile, withEnv = false) {
+    const env = withEnv && process.env.ENV ? `.${process.env.ENV}` : ''
+    return toml.parse(fs.readFileSync(`${cfgFile}${env}.toml`, {encoding: "utf8"}))
+  },
+  fixStartsWith (text, prefix) {
+    return (text.substring(0, prefix.length) !== prefix ? prefix : '') + text
+  },
+  fixEndsWith (text, suffix) {
+    return text + (text.substring(text.length - suffix.length) !== suffix ? suffix : '')
+  },
+  rmvEndsOf (text, suffix) {
+    const index = text.indexOf(suffix)
+    return index !== -1 ? text.substring(0, index) : text
+  },
+  getDatabase () {
+    return require(`../databases/${
+      this.readConfig("./configs/model").type
+    }`)
+  },
+  randTakeFmAry (array, number) {
+    if (array.length < number) {
+      return []
+    }
+    const res = []
+    for (let i = 0; i < number; ++i) {
+      const index = _.toInteger(Math.random() * array.length)
+      if (res.includes(index)) {
+        continue
+      }
+      res.push(index)
+    }
+    for (let i = 0; i < res.length; ++i) {
+      res[i] = array[res[i]]
+    }
+    return res
   }
 }
 

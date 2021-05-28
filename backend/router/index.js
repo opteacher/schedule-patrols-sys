@@ -11,7 +11,7 @@ const scanPath = require('../utils/tools').scanPath
 console.log('API路由：')
 
 // @steps{1}:扫描当前路径下除index.js以外的所有文件
-const subPathAry = scanPath(__dirname, {ignores: ['index.js']})
+const subPathAry = scanPath(__dirname, {ignores: ['index.js', 'schedule-patrols-sys/api/v1/common.js']})
 
 // @steps{2}:根据各个文件相对路径，require之后开辟相应的路由
 subPathAry.map(file => {
