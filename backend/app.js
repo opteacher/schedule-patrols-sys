@@ -1,8 +1,10 @@
+const path = require('path')
 const Koa = require('koa')
 const bodyparser = require('koa-bodyparser')
 const koaBody = require('koa-body')
 const json = require('koa-json')
 const logger = require('koa-logger')
+const statc = require("koa-static")
 const cors = require('koa2-cors')
 
 const router = require('./router/index')
@@ -25,6 +27,8 @@ app.use(koaBody({
 app.use(json())
 // 日志输出
 app.use(logger())
+// 指定静态目录
+app.use(statc(path.join(__dirname, "public")))
 // 模型路由
 app.use(models.routes(), models.allowedMethods())
 // 路径分配

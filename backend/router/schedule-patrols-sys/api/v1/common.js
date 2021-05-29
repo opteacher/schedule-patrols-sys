@@ -81,22 +81,27 @@ module.exports = {
         dataIndex: 'date',
         key: 'A',
         width: 80,
-        fixed: 'left',
-        scopedSlots: { customRender: 'date' }
+        fixed: 'left'
       }, {
-        title: '东片巡逻',
-        dataIndex: 'east',
+        title: '星期',
+        dataIndex: 'week',
         key: 'B',
+        width: 40,
+        fixed: 'left'
+      },{
+        title: '东片区巡逻',
+        dataIndex: 'east',
+        key: 'C',
         width: 100
       }, {
-        title: '西片巡逻',
+        title: '西片区巡逻',
         dataIndex: 'west',
-        key: 'C',
+        key: 'D',
         width: 100
       }, {
         title: '责任区平峰',
         dataIndex: 'norm',
-        key: 'D',
+        key: 'E',
         width: 100
       }],
       data,

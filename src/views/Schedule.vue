@@ -2,56 +2,55 @@
   <div>
     <div class="top-tabbar ptb-10">
       <a-button-group v-if="selTab === 'guard'" class="mr-8">
-        <a-button @click="loadDlg.visible = true">导入排班</a-button>
+        <a-button @click="uploadDlg.visible = true">导入排班</a-button>
         <a-modal
           title="配置导入的排班Excel文件"
-          :visible="loadDlg.visible"
-          :confirm-loading="loadDlg.cfmLoading"
+          :visible="uploadDlg.visible"
+          :confirm-loading="uploadDlg.confirming"
           @ok="onCfmUpldSubmited"
-          @cancel="loadDlg.visible = false"
+          @cancel="onCfmUpldCanceled"
         >
-          <a-checkbox :checked="loadDlg.isMergeCurrent"
-            @change="loadDlg.isMergeCurrent = arguments[0].target.checked"
+          <a-checkbox :checked="uploadDlg.isMergeCurrent"
+            @change="uploadDlg.isMergeCurrent = arguments[0].target.checked"
           >
             是否合并到当前值班表？
           </a-checkbox>
-          <a-checkbox class="ml-0" :checked="loadDlg.isAutoGene"
-            @change="loadDlg.isAutoGene = arguments[0].target.checked"
+          <a-checkbox class="ml-0" :checked="uploadDlg.isAutoGene"
+            @change="uploadDlg.isAutoGene = arguments[0].target.checked"
           >
             是否自动生成街面勤务表？
           </a-checkbox>
         </a-modal>
+        <a-upload
+          class="hide-upload"
+          style="display: none"
+          name="file"
+          :action="[
+            bkdHost,
+            '/schedule-patrols-sys',
+            '/api/v1/guard/file/upload',
+            `?isMergeCurrent=${uploadDlg.isMergeCurrent}`,
+            `&isAutoGene=${uploadDlg.isAutoGene}`
+          ].join('')"
+          :multiple="true"
+          accept=".xlsx,.xls"
+          @change="onSelFileChanged"
+        />
       </a-button-group>
-      <a-button-group v-else-if="selTab === 'patrol'" class="mr-8">
+      <a-button-group class="mr-8"
+        v-else-if="selTab === 'patrol' && dataTable.guard.data.length && dataTable.patrol.data.length"
+      >
         <a-button @click="onGenePatrolClicked">再生成</a-button>
       </a-button-group>
-      <a-upload
-        class="hide-upload"
-        style="display: none"
-        name="file"
-        :action="[
-          'http://127.0.0.1:4000',
-          '/schedule-patrols-sys',
-          '/api/v1/guard/file/upload',
-          `?isMergeCurrent=${loadDlg.isMergeCurrent}`,
-          `&isAutoGene=${loadDlg.isAutoGene}`
-        ].join('')"
-        :multiple="true"
-        accept=".xlsx,.xls"
-        @change="onSelFileChanged"
-      />
       <a-button-group>
-        <a-button
+        <a-button @click="onTopTabClicked('guard')"
           :type="selTab === 'guard' ? 'primary' : 'default'"
-          @click="onTopTabClicked('guard')"
         >排班表</a-button>
-        <a-button
+        <a-button @click="onTopTabClicked('patrol')"
           :type="selTab === 'patrol' ? 'primary' : 'default'"
-          @click="onTopTabClicked('patrol')"
         >勤务表</a-button>
-        <a-button
+        <a-button @click="onTopTabClicked('my')"
           :type="selTab === 'my' ? 'primary' : 'default'"
-          @click="onTopTabClicked('my')"
         >我的</a-button>
       </a-button-group>
     </div>
@@ -63,17 +62,17 @@
       size="small"
       :pagination="false"
       :rowClassName="setTableRowCls"
-    >
-      <span slot="date" slot-scope="text, record">
-        {{record.date}}<br/>{{record.week}}
-      </span>
-    </a-table>
-    <a-button v-if="selTab === 'guard' && dataTable.guard.data.length"
-      class="btm-btn" type="primary" :loading="loadGenePatrol" @click="onGenePatrolClicked"
+      :loading="dataTable.loading"
+    />
+    <a-button v-if="selTab === 'guard' && dataTable.guard.data.length && !dataTable.patrol.data.length"
+      class="btm-btn" type="primary" :loading="loadGenePatrol"
+      :style="loadGenePatrol ? 'width: 90vw' : ''" @click="onGenePatrolClicked"
     >
       生成街面勤务安排
     </a-button>
-    <a-button v-else-if="selTab === 'patrol' && dataTable.patrol.data.length" class="btm-btn" type="primary">
+    <a-button v-else-if="selTab === 'patrol' && dataTable.patrol.data.length"
+      class="btm-btn" type="primary" @click="onExportClicked"
+    >
       导出为Excel文件
     </a-button>
   </div>
@@ -81,13 +80,16 @@
 
 <script>
 import $ from 'jquery'
+import axios from 'axios'
 import utils from '../common/utils'
 export default {
   name: 'Schedule',
   data () {
     return {
+      bkdHost: 'http://127.0.0.1:4000',
       selTab: 'patrol',
       dataTable: {
+        loading: false,
         guard: {
           columns: [],
           data: [],
@@ -104,9 +106,9 @@ export default {
           scroll: {x: 0, y: 0}
         }
       },
-      loadDlg: {
+      uploadDlg: {
         visible: false,
-        cfmLoading: false,
+        confirming: false,
         isMergeCurrent: true,
         isAutoGene: false
       },
@@ -120,10 +122,10 @@ export default {
   },
   methods: {
     onCfmUpldSubmited () {
-      this.loadDlg.cfmLoading = true
+      this.uploadDlg.confirming = true
       $('.hide-upload input[type=file]').click()
     },
-    onSelFileChanged (e) {
+    async onSelFileChanged (e) {
       if (e.file.response) {
         const result = e.file.response.result
         this.dataTable.guard = result.guard
@@ -132,16 +134,21 @@ export default {
           data: [],
           scroll: {x: 0, y: 0}
         }
+        await this._fixTbodyHeight()
       }
-      this.loadDlg.visible = false
-      this.loadDlg.cfmLoading = false
+      this.uploadDlg.visible = false
+      this.uploadDlg.confirming = false
     },
     setTableRowCls (record, index) {
       return index % 2 ? '' : 'light-grey-bkgd'
     },
     async _reqBackend (symbol) {
-      const url = `http://127.0.0.1:4000/schedule-patrols-sys/mdl/v1/${symbol}s`
-      const resp = await this.$http.get(url, {
+      if (symbol === 'my') {
+        return
+      }
+      this.dataTable.loading = true
+      const url = `${this.bkdHost}/schedule-patrols-sys/mdl/v1/${symbol}s`
+      const resp = await axios.get(url, {
         params: {month: (new Date()).getMonth() + 1}
       })
       this.dataTable[symbol] = resp.data.data[0] || {
@@ -149,11 +156,23 @@ export default {
         data: [],
         scroll: {x: 0, y: 0}
       }
+      this.dataTable.loading = false
     },
-    async onGenePatrolClicked () {
+    onGenePatrolClicked () {
+      const self = this
+      this.$confirm({
+        title: '确认生成巡逻勤务表？',
+        content: '会覆盖原表！',
+        onOk () {
+          self._genePatrols()
+        }
+      })
+    },
+    async _genePatrols () {
+      const self = this
       this.loadGenePatrol = true
-      const resp = await this.$http.post(
-        'http://127.0.0.1:4000/schedule-patrols-sys/api/v1/patrol/gene'
+      const resp = await axios.post(
+        `${this.bkdHost}/schedule-patrols-sys/api/v1/patrol/gene`
       )
       this.loadGenePatrol = false
       this.dataTable.patrol = resp.data.result || {
@@ -163,13 +182,9 @@ export default {
       }
       this.$success({
         title: '操作成功！',
-        content: (
-          <div>
-            <p>已为当前月生成新的巡逻班表</p>
-          </div>
-        ),
+        content: <div><p>已为当前月生成新的巡逻班表</p></div>,
         onOk() {
-          this.onTopTabClicked('patrol')
+          self.onTopTabClicked('patrol')
         }
       })
     },
@@ -181,14 +196,34 @@ export default {
     async _fixTbodyHeight () {
       let tbodyHeight = $('#app').height()
       tbodyHeight -= $('.top-tabbar').height() + 20
-      const btmBtn = await utils.$For('.btm-btn', ele => ele[0].innerText)
-      tbodyHeight -= btmBtn.height() + 10
+      const btmBtn = await utils.$For('.btm-btn', ele => ele[0].innerText, 10)
+      if (btmBtn.length) {
+        tbodyHeight -= btmBtn.height() + 13
+      }
       const thead = await utils.$For('.ant-table-thead', ele => ele[0].innerText)
       tbodyHeight -= thead.height()
       const tbody = await utils.$For('.ant-table-body', ele => ele[0].innerText)
       tbody.css('max-height', `${tbodyHeight}px`)
       const tbodyInner = await utils.$For('.ant-table-body-inner', ele => ele[0].innerText)
       tbodyInner.css('max-height', `${tbodyHeight}px`)
+    },
+    async onExportClicked () {
+      const resp = await axios.get(
+        `${this.bkdHost}/schedule-patrols-sys/api/v1/patrol/export/excel`
+      )
+      if (!resp.data.result) {
+        this.$error({
+          title: '导出Excel发生错误！',
+          content: `错误详情：${resp.data.error || ''}`,
+        })
+      } else {
+        this.$message.success('导出成功！');
+        window.location.href = `${this.bkdHost}/${resp.data.result}`
+      }
+    },
+    onCfmUpldCanceled () {
+      this.uploadDlg.visible = false
+      this.uploadDlg.confirming = false
     }
   }
 }

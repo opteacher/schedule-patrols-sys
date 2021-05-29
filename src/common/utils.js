@@ -1,9 +1,9 @@
 const $ = require('jquery')
 
 module.exports = {
-  async $For (select, cdFun = null) {
+  async $For (select, cdFun = null, loopNum = 500) {
     let ret = []
-    for (let i = 0; i < 500; ++i) {
+    for (let i = 0; i < loopNum; ++i) {
       ret = $(select)
       if (ret.length) {
         if (cdFun && cdFun(ret)) {

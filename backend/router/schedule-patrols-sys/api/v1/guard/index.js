@@ -13,10 +13,6 @@ function fixDate (orgDate) {
   return tools.fixEndsWith(orgDate.replace("/", "月"), '日')
 }
 
-function fixWeek (orgWeek) {
-  return tools.fixStartsWith(orgWeek, '星期')
-}
-
 async function fmtToFtStruct (worksheet, mergeCurrent) {
   const columns = []
   const data = []
@@ -37,8 +33,7 @@ async function fmtToFtStruct (worksheet, mergeCurrent) {
             key: `${String.fromCharCode(64 + j)}${i}`,
             width: 80,
             index: j,
-            fixed: 'left',
-            scopedSlots: { customRender: 'date' }
+            fixed: 'left'
           })
           dateIdx = j
           break
@@ -53,6 +48,14 @@ async function fmtToFtStruct (worksheet, mergeCurrent) {
           continue
         }
         if (cell.value === '星期') {
+          columns.push({
+            title: '星期',
+            dataIndex: 'week',
+            key: `${String.fromCharCode(64 + j)}${i}`,
+            width: 40,
+            index: j,
+            fixed: 'left'
+          })
           weekIdx = j
         } else {
           columns.push({
@@ -64,13 +67,13 @@ async function fmtToFtStruct (worksheet, mergeCurrent) {
           })
         }
       }
-      scroll.x = 80 + (columns.length - 1) * 100
+      scroll.x = 120 + (columns.length - 2) * 100
       continue
     }
     let record = {
       key: i,
       date: fixDate(row.getCell(dateIdx).value),
-      week: fixWeek(row.getCell(weekIdx).value)
+      week: row.getCell(weekIdx).value
     }
     if (month === -1) {
       month = record.date.match(new RegExp('^[0-9]+'))[0]
