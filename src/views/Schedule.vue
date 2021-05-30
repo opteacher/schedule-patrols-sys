@@ -6,9 +6,7 @@
         <a-modal
           title="配置导入的排班Excel文件"
           :visible="uploadDlg.visible"
-          :confirm-loading="uploadDlg.confirming"
-          @ok="onCfmUpldSubmited"
-          @cancel="onCfmUpldCanceled"
+          @cancel="uploadDlg.visible = false"
         >
           <a-checkbox :checked="uploadDlg.isMergeCurrent"
             @change="uploadDlg.isMergeCurrent = arguments[0].target.checked"
@@ -20,22 +18,26 @@
           >
             是否自动生成街面勤务表？
           </a-checkbox>
+          <template slot="footer">
+            <a-button class="mr-8" @click="uploadDlg.visible = false">取消</a-button>
+            <a-upload
+              class="hide-upload"
+              name="file"
+              :action="[
+                bkdHost,
+                '/schedule-patrols-sys',
+                '/api/v1/guard/file/upload',
+                `?isMergeCurrent=${uploadDlg.isMergeCurrent}`,
+                `&isAutoGene=${uploadDlg.isAutoGene}`
+              ].join('')"
+              :multiple="true"
+              accept=".xlsx,.xls"
+              @change="onSelFileChanged"
+            >
+              <a-button type="primary">确定</a-button>
+            </a-upload>
+          </template>
         </a-modal>
-        <a-upload
-          class="hide-upload"
-          style="display: none"
-          name="file"
-          :action="[
-            bkdHost,
-            '/schedule-patrols-sys',
-            '/api/v1/guard/file/upload',
-            `?isMergeCurrent=${uploadDlg.isMergeCurrent}`,
-            `&isAutoGene=${uploadDlg.isAutoGene}`
-          ].join('')"
-          :multiple="true"
-          accept=".xlsx,.xls"
-          @change="onSelFileChanged"
-        />
       </a-button-group>
       <a-button-group class="mr-8"
         v-else-if="selTab === 'patrol' && dataTable.guard.data.length && dataTable.patrol.data.length"
@@ -108,7 +110,6 @@ export default {
       },
       uploadDlg: {
         visible: false,
-        confirming: false,
         isMergeCurrent: true,
         isAutoGene: false
       },
@@ -121,10 +122,6 @@ export default {
     await this._fixTbodyHeight()
   },
   methods: {
-    onCfmUpldSubmited () {
-      this.uploadDlg.confirming = true
-      $('.hide-upload input[type=file]').click()
-    },
     async onSelFileChanged (e) {
       if (e.file.response) {
         const result = e.file.response.result
@@ -134,10 +131,15 @@ export default {
           data: [],
           scroll: {x: 0, y: 0}
         }
+        if (this.uploadDlg.isAutoGene) {
+          this.onTopTabClicked('patrol')
+          this.$message.success('生成成功！')
+        } else {
+          this.$message.success('导入成功！')
+        }
         await this._fixTbodyHeight()
       }
       this.uploadDlg.visible = false
-      this.uploadDlg.confirming = false
     },
     setTableRowCls (record, index) {
       return index % 2 ? '' : 'light-grey-bkgd'
@@ -207,23 +209,25 @@ export default {
       const tbodyInner = await utils.$For('.ant-table-body-inner', ele => ele[0].innerText)
       tbodyInner.css('max-height', `${tbodyHeight}px`)
     },
-    async onExportClicked () {
-      const resp = await axios.get(
-        `${this.bkdHost}/schedule-patrols-sys/api/v1/patrol/export/excel`
-      )
-      if (!resp.data.result) {
-        this.$error({
-          title: '导出Excel发生错误！',
-          content: `错误详情：${resp.data.error || ''}`,
-        })
-      } else {
-        this.$message.success('导出成功！');
-        window.location.href = `${this.bkdHost}/${resp.data.result}`
-      }
-    },
-    onCfmUpldCanceled () {
-      this.uploadDlg.visible = false
-      this.uploadDlg.confirming = false
+    onExportClicked () {
+      const self = this
+      this.$confirm({
+        content: '确定导出为Excel文件？',
+        async onOk() {
+          const resp = await axios.get(
+            `${self.bkdHost}/schedule-patrols-sys/api/v1/patrol/export/excel`
+          )
+          if (!resp.data.result) {
+            self.$error({
+              title: '导出Excel发生错误！',
+              content: `错误详情：${resp.data.error || ''}`,
+            })
+          } else {
+            self.$message.success('导出成功！')
+            window.location.href = `${self.bkdHost}/${resp.data.result}`
+          }
+        }
+      })
     }
   }
 }

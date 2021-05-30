@@ -5,6 +5,7 @@ module.exports = db.defineModel({
   month: db.Types.Number,
   columns: db.Types.Array,
   data: db.Types.Array,
+  counts: db.Types.Object,
   scroll: {
     x: db.Types.Number,
     y: db.Types.Number

@@ -116,18 +116,18 @@ const exp = {
     if (array.length < number) {
       return []
     }
+    if (array.length === number) {
+      return array
+    }
     const res = []
     for (let i = 0; i < number; ++i) {
-      const index = _.toInteger(Math.random() * array.length)
-      if (res.includes(index)) {
-        continue
-      }
+      let index = -1
+      do {
+        index = _.toInteger(Math.random() * array.length)
+      } while (res.includes(index))
       res.push(index)
     }
-    for (let i = 0; i < res.length; ++i) {
-      res[i] = array[res[i]]
-    }
-    return res
+    return res.map(index => array[index])
   }
 }
 

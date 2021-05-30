@@ -1,7 +1,7 @@
 .DS_Store
 node_modules
 /dist
-
+backend/public/schedule-patrols-sys/static/exports/
 
 # local env files
 .env.local

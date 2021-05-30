@@ -7,8 +7,8 @@ const logger = require('koa-logger')
 const statc = require("koa-static")
 const cors = require('koa2-cors')
 
-const router = require('./router/index')
 const models = require("./models/index").index
+const router = require('./router/index')
 
 const app = new Koa()
 

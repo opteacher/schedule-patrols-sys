@@ -24,7 +24,8 @@ function Mongo() {
       Number:   Number,
       Date:     Date,
       Boolean:  Boolean,
-      Array:    Array
+      Array:    Array,
+      Object:   Map
     },
     writable: false
   })

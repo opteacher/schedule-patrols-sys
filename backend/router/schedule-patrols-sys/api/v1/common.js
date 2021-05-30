@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const path = require('path')
 const tools = require('../../../../utils/tools')
 const db = tools.getDatabase()
@@ -45,13 +46,16 @@ module.exports = {
     // 排班
     const memAry = Array.from(memSet)
     const data = []
+    let yesterday = []
     for (const group of groups) {
       const avaMems = memAry.filter(mem => {
         return !group.afternoon.includes(mem)
           && !group.evening.includes(mem)
           && !group.yesterday.includes(mem)
+          && !yesterday.includes(mem)
       })
-      const selMems = tools.randTakeFmAry(avaMems, 3)
+      // 执勤次数较低的成员
+      let stdMems = _.sortBy(avaMems, mem => members[mem])
       const record = {
         key: group.date,
         date: group.date,
@@ -60,7 +64,9 @@ module.exports = {
         west: [],
         norm: []
       }
-      if (selMems.length >= 3) {
+      if (stdMems.length >= 3) {
+        // 取末尾三个成员，并打乱顺序
+        const selMems = _.shuffle(stdMems.slice(0, 3))
         const mem1 = selMems[0]
         const mem2 = selMems[1]
         const mem3 = selMems[2]
@@ -70,6 +76,9 @@ module.exports = {
         members[mem1]++
         members[mem2]++
         members[mem3]++
+        yesterday = [mem1, mem2, mem3]
+      } else {
+        yesterday = []
       }
       data.push(record)
     }
@@ -105,6 +114,7 @@ module.exports = {
         width: 100
       }],
       data,
+      counts: members,
       scroll: {x: 380, y: 390}
     }
     await db.delete(Patrol, {month})
