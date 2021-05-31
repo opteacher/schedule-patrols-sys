@@ -23,6 +23,7 @@
             <a-upload
               class="hide-upload"
               name="file"
+              :showUploadList="false"
               :action="[
                 bkdHost,
                 '/schedule-patrols-sys',

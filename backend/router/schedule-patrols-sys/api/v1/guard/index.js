@@ -13,6 +13,44 @@ function fixDate (orgDate) {
   return tools.fixEndsWith(orgDate.replace("/", "月"), '日')
 }
 
+async function persistent (content, options) {
+  let idCond = undefined
+  console.log(options.mergeCurrent)
+  if (!options.mergeCurrent) {
+    await db.delete(Guard, {month: content.month})
+  } else {
+    const ress = await db.select(Guard, {month: content.month}, {ext: true})
+    if (ress.length) {
+      const current = ress[0]
+      idCond = {id: current._id}
+      // 调整列
+      const cttCols = content.columns.map(column => column.dataIndex)
+      for (const column of current.columns) {
+        if (!cttCols.includes(column.dataIndex)) {
+          content.columns.push(column)
+        }
+      }
+      // 构建现存数据映射表
+      const curDataMap = {}
+      current.data.map(record => {
+        curDataMap[record.date] = record
+      })
+      // 调整内容
+      for (let i = 0; i < content.data.length; ++i) {
+        const record = content.data[i]
+        const curRcd = curDataMap[record.date]
+        for (const column of content.columns) {
+          const cdIdx = column.dataIndex
+          if (!content.data[i][cdIdx] && curRcd[cdIdx]) {
+            content.data[i][cdIdx] = curRcd[cdIdx]
+          }
+        }
+      }
+    }
+  }
+  return db.save(Guard, content, idCond).then(ress => ress[0])
+}
+
 async function fmtToFtStruct (worksheet, mergeCurrent) {
   const columns = []
   const data = []
@@ -88,13 +126,10 @@ async function fmtToFtStruct (worksheet, mergeCurrent) {
     }
     data.push(record)
   }
-  const result = {month, columns, data, scroll}
-  if (!mergeCurrent) {
-    await db.delete(Guard, {month})
-  } else {
-    // @_@
-  }
-  return db.save(Guard, result).then(newAry => newAry[0])
+  const result = await persistent({
+    month, columns, data, scroll
+  }, {mergeCurrent})
+  return result
 }
 
 router.post('/file/upload', async ctx => {
@@ -104,7 +139,9 @@ router.post('/file/upload', async ctx => {
   await workbook.xlsx.read(fs.createReadStream(file.path))
   const worksheet = workbook.getWorksheet(1)
 
-  const guard = await fmtToFtStruct(worksheet, ctx.query.isMergeCurrent)
+  const guard = await fmtToFtStruct(worksheet,
+    JSON.parse(ctx.query.isMergeCurrent)
+  )
   if (!JSON.parse(ctx.query.isAutoGene)) {
     ctx.body = {
       result: {guard}
